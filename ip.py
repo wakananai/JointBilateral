@@ -1,86 +1,68 @@
 import cv2
 import numpy as np
-#has guassian function in
-from scipy import signal
+import math
 
-img = cv2.imread('./test2.png', cv2.IMREAD_COLOR);
-noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR);
-flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR);
-
-
-blurredImg = cv2.bilateralFilter(img,5,100,100)
 
 #makes the dimensions of our mask in range for corners
 def MakeInRange(img,low_x,low_y,high_x,high_y):
-	inRange = False
-	while not inRange:
-		low_x_inRange = True
-		try:
-			p = img[low_x]
-		except:
-			low_x +=1
-			low_x_inRange = False
-		low_y_inRange = True
-		try:
-			p = img[low_x,low_y]
-		except:
-			low_y +=1
-			low_y_inRange = False
-		high_x_inRange = True
-		try:
-			p = img[high_x]
-		except:
-			high_x +=1
-			high_x_inRange = False
-		high_y_inRange = True
-		try:
-			p = img[low_x,high_y]
-		except:
-			high_y +=1
-			high_y_inRange = False
-		if low_y_inRange and high_y_inRange and low_x_inRange and high_x_inRange:
-			inRange = True		
+	if low_x < 0:
+		low_x = 0
+	if low_y < 0 :
+		low_y = 0
+	if high_x > (img.shape[0] -1):
+		high_x = img.shape[0] -1
 
-
+	if high_y > img.shape[1] - 1:
+		high_y = img.shape[1] -1
+	return low_x,low_y,high_x,high_y
 #the actual gaussian function
 def gaussian(number,stdev):
 	power = -0.5 * ((number/stdev)**2)
 	divisor = stdev * math.sqrt(2 * math.pi )
 	result = math.exp(power)/divisor
-
-#guassian function based on color difference
+	return result
 #for one pixel
-def colorGaussian(img,d,i,j,stdev):	
+def bilateralPix(img,d,x,y,stdevC,stdevD):	
 	#don't use indexes that are out of range
 	#find ranges of mask
 	if d % 2 == 0:
-		low_x = i - (d//2-1)
-		low_y = j - (d//2-1)
+		low_x = x - (d//2-1)
+		low_y = y - (d//2-1)
 
 	else:
-		low_x = i - (d//2)
-		low_y = j - (d//2)
-	high_x = i + (d//2)
-	high_y = j + (d//2)
-
-	MakeInRange(img,low_x,low_y,high_x,high_y)
+		low_x = x - (d//2)
+		low_y = y - (d//2)
+	high_x = x + (d//2)
+	high_y = y + (d//2)
+	low_x,low_y,high_x,high_y  = MakeInRange(img,low_x,low_y,high_x,high_y)
 
 	#find the sum of the gaussian functions
-	total = 0
+	total= np.zeros(3)
+	totalDivisor= np.zeros(3)
+
 	newPixel = []
 	for a in range(low_x,high_x + 1):
 		for b in range(low_y,high_y +1):
-			for c in range(3) # do this for each color
-				signal.guassian(img)
+			for c in range(3): # do this for each color
+				colorGauss = gaussian(abs(img[x,y,c] - img[a,b,c]),stdevC)
+				distanceGauss = gaussian(math.sqrt((x-a)**2 + (y-b)**2),stdevD)    #
+				total[c] += colorGauss * distanceGauss * img[x,y,c]
+				totalDivisor[c] += colorGauss * distanceGauss
+	img[x,y] = total/totalDivisor
 
-#guassian function based on distance
-def distanceBlur(img,d,i,j,stdev)
+#full bilateral filter
+def bilateral(img,d,stdevC,stdevD):
+	for i in range(img.shape[0]):
+		for j in range(img.shape[1]):
+			bilateralPix(img,d,i,j,stdevC,stdevD)
+		print('col done ' + str(i))
+	return img
 
 def jointBilateral(flash,noFlash,d):
 	#loop through flash image
 	for i in range(flash.shape[0]):
-		for j in range(flash.shape[1])
-
+		for j in range(flash.shape[1]):
+			pass
 	print(flash)
 
 
@@ -88,18 +70,18 @@ def jointBilateral(flash,noFlash,d):
 	#loop through indexes
 	return img
 
-def main()
-	jointImg = jointBilateral(flashImg,noFlashImg)
+def main():
+	img = cv2.imread('./test2.png', cv2.IMREAD_COLOR);
+	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR);
+	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR);
+	#jointImg = jointBilateral(flashImg,noFlashImg)
+	filteredImg = bilateral(img,5,100,100)
 	if not blurredImg is None:
-
-	    cv2.namedWindow('joint bilateral filter');
-
+	    cv2.namedWindow('bilateral filter');
 	    # set a loop control flag
-
 	    keep_processing = True;
-
 	    while (keep_processing):
-	        cv2.imshow('joint bilateral filter', jointImg);
+	        cv2.imshow('bilateral filter', filteredImg);
 	        key = cv2.waitKey(40) & 0xFF; #
 
 	        if (key == ord('x')):
@@ -112,3 +94,4 @@ def main()
 
 	cv2.destroyAllWindows();
 
+main()
