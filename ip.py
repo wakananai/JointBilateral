@@ -41,6 +41,13 @@ def MakeInRange(img,low_x,low_y,high_x,high_y):
 		if low_y_inRange and high_y_inRange and low_x_inRange and high_x_inRange:
 			inRange = True		
 
+
+#the actual gaussian function
+def gaussian(number,stdev):
+	power = -0.5 * ((number/stdev)**2)
+	divisor = stdev * math.sqrt(2 * math.pi )
+	result = math.exp(power)/divisor
+
 #guassian function based on color difference
 #for one pixel
 def colorGaussian(img,d,i,j,stdev):	
@@ -56,13 +63,14 @@ def colorGaussian(img,d,i,j,stdev):
 	high_x = i + (d//2)
 	high_y = j + (d//2)
 
-	inRange = False
 	MakeInRange(img,low_x,low_y,high_x,high_y)
+
+	#find the sum of the gaussian functions
 	total = 0
 	newPixel = []
 	for a in range(low_x,high_x + 1):
 		for b in range(low_y,high_y +1):
-			for c in range(3)
+			for c in range(3) # do this for each color
 				signal.guassian(img)
 
 #guassian function based on distance
