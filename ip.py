@@ -55,7 +55,7 @@ def bilateralPix(img,d,x,y,stdevC,stdevD):
 	return total/totalDivisor
 
 #the joint bilateral filter for a pixel
-def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD):
+def jointBilateralPix(flash,noFlash,d,x,y,gaussianColorDict,gaussianDistDict):
 	#don't use indexes that are out of range
 	#find ranges of mask
 	if d % 2 == 0:
@@ -74,12 +74,11 @@ def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD):
 	totalDivisor= np.zeros(3)
 	#print('range: ' + str(high_x - low_x))
 	#print('range: ' + str(high_y - low_y))
-
 	for a in range(low_x,high_x + 1):
 		for b in range(low_y,high_y +1):
 			for c in range(3): # do this for each color
-				colorGauss = gaussian(abs(flash.item(x,y,c) - flash.item(a,b,c)),stdevC)
-				distanceGauss = gaussian(math.sqrt((x-a)**2 + (y-b)**2),stdevD) 
+				colorGauss = gaussianColorDict[abs(flash.item(x,y,c) - flash.item(a,b,c))]
+				distanceGauss = gaussianDistDict[math.sqrt((x-a)**2 + (y-b)**2)] 
 				total[c] += (colorGauss * distanceGauss * noFlash[a,b,c])
 				totalDivisor[c] += colorGauss * distanceGauss 
 	return total/totalDivisor	
@@ -102,10 +101,19 @@ def bilateralInbuilt(img,d,stdevC,stdevD):
 	return result
 
 def jointBilateral(flash,noFlash,d,stdevC,stdevD):
+	#precompute guassian values in dict
+	gaussianColorDict = {}
+	for i in range(256):
+		gaussianColorDict[i] = gaussian(i,stdevC)
+	gaussianDistDict = {}
+	for i in range(d//2 + 2):
+		for j in range(d//2 + 2):
+			pythag = math.sqrt(i**2 + j**2)
+			gaussianDistDict[pythag] = gaussian(pythag,stdevD)
 	newImg = np.zeros((flash.shape[0],flash.shape[1],3),dtype = int)
 	for i in range(flash.shape[0]):
 		for j in range(flash.shape[1]):
-			newImg[i,j] = jointBilateralPix(flash,noFlash,d,i,j,stdevC,stdevD)
+			newImg[i,j] = jointBilateralPix(flash,noFlash,d,i,j,gaussianColorDict,gaussianDistDict)
 	result = np.asarray(newImg, dtype=np.uint8)	
 
 	return result
