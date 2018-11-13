@@ -20,7 +20,10 @@ def gaussian(number,stdev):
 	power = -0.5 * ((number/stdev)**2)
 	divisor = stdev * math.sqrt(2 * math.pi )
 	result = math.exp(power)/divisor
+	#print(number - result)
 	return result
+
+
 #for one pixel
 def bilateralPix(img,d,x,y,stdevC,stdevD):	
 	#don't use indexes that are out of range
@@ -39,24 +42,30 @@ def bilateralPix(img,d,x,y,stdevC,stdevD):
 	#find the sum of the gaussian functions
 	total= np.zeros(3)
 	totalDivisor= np.zeros(3)
-
-	newPixel = []
 	for a in range(low_x,high_x + 1):
 		for b in range(low_y,high_y +1):
 			for c in range(3): # do this for each color
 				colorGauss = gaussian(abs(img[x,y,c] - img[a,b,c]),stdevC)
-				distanceGauss = gaussian(math.sqrt((x-a)**2 + (y-b)**2),stdevD)    #
+				distanceGauss = gaussian(math.sqrt((x-a)**2 + (y-b)**2),stdevD) 
 				total[c] += colorGauss * distanceGauss * img[x,y,c]
 				totalDivisor[c] += colorGauss * distanceGauss
-	img[x,y] = total/totalDivisor
+
+	result = np.asarray(total/totalDivisor, dtype=int)	#
+	#print(result)
+
+	return result
 
 #full bilateral filter
 def bilateral(img,d,stdevC,stdevD):
+	newImg = np.zeros((img.shape[0],img.shape[1],3),dtype = int)
 	for i in range(img.shape[0]):
 		for j in range(img.shape[1]):
-			bilateralPix(img,d,i,j,stdevC,stdevD)
-		print('col done ' + str(i))
-	return img
+			old = img[i,j]
+			newImg[i,j]= bilateralPix(img,d,i,j,stdevC,stdevD)
+			#print(newImg[i,j]) #-old)
+	print(img)
+	print(newImg)
+	return newImg
 
 def jointBilateral(flash,noFlash,d):
 	#loop through flash image
@@ -64,19 +73,17 @@ def jointBilateral(flash,noFlash,d):
 		for j in range(flash.shape[1]):
 			pass
 	print(flash)
-
-
 	img = cv2.bilateralFilter(flash,5,100,100)
 	#loop through indexes
 	return img
 
 def main():
-	img = cv2.imread('./test2.png', cv2.IMREAD_COLOR);
+	img = cv2.imread('./180.png', cv2.IMREAD_COLOR);
 	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR);
 	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR);
 	#jointImg = jointBilateral(flashImg,noFlashImg)
 	filteredImg = bilateral(img,5,100,100)
-	if not blurredImg is None:
+	if not filteredImg is None:
 	    cv2.namedWindow('bilateral filter');
 	    # set a loop control flag
 	    keep_processing = True;
@@ -86,7 +93,6 @@ def main():
 
 	        if (key == ord('x')):
 	            keep_processing = False;
-
 	else:
 	    print("No image file successfully loaded.");
 
