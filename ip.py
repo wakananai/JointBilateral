@@ -40,14 +40,15 @@ def jointBilateralPix(flash,noFlash,d,x,y,gaussianColorDict,gaussianDistDict):
 	#find the sum of the gaussian functions
 	total= np.zeros(3) 
 	totalDivisor= np.zeros(3)
-	colour = flash.item(x,y,c)
+	colorGauss = np.zeros(3)
+	colour = flash[x,y]
 	for a in range(low_x,high_x + 1):
 		for b in range(low_y,high_y +1):
 			distanceGauss = gaussianDistDict[math.sqrt((x-a)**2 + (y-b)**2)] 
 			for c in range(3): # do this for each color
-				colorGauss = gaussianColorDict[abs(colour - flash.item(a,b,c))]
-				total[c] += (colorGauss * distanceGauss * noFlash.item(a,b,c))
-				totalDivisor[c] += colorGauss * distanceGauss 
+				colorGauss[c] = gaussianColorDict[abs(colour[c] - flash.item(a,b,c))]
+			total += (colorGauss * distanceGauss * noFlash[a,b])
+			totalDivisor += colorGauss * distanceGauss 
 	return total/totalDivisor
 
 def jointBilateral(flash,noFlash,d,stdevC,stdevD):
@@ -69,16 +70,16 @@ def jointBilateral(flash,noFlash,d,stdevC,stdevD):
 	return result
 
 def main():
-	imgname = 'meme.jpg' 
-	img = cv2.imread('./' + imgname, cv2.IMREAD_COLOR);
-	#noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR);
-	#flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR);
-	#jointImg = jointBilateral(flashImg,noFlashImg)
+	imgname = 'join' 
+	#img = cv2.imread('./' + imgname, cv2.IMREAD_COLOR);
+	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR);
+	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR);
+
 	stdev1 =100
 	stdev2 = 100
 	diam = 9
-	#filteredImg = jointBilateral(flashImg,noFlashImg,diam,stdev1,stdev2)
-	filteredImg = cv2.bilateralFilter(img,diam,stdev1,stdev2)
+	filteredImg = jointBilateral(flashImg,noFlashImg,diam,stdev1,stdev2)
+	#filteredImg = cv2.bilateralFilter(img,diam,stdev1,stdev2)
 	name = imgname + str(diam) + '_' + str(stdev1) + '_' + str(stdev2) +'.png'
 	path = 'C:/Users/rowan/Documents/uni_year_2/image processing/coursework'
 	cv2.imwrite(os.path.join(path,name),filteredImg)
