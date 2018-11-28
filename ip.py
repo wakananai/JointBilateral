@@ -30,14 +30,26 @@ def gaussian(mask,stdev):
 	result = np.exp(power)/divisor
 	return result
 
-def get2dKernel(d,stdev):
+#2d array of gaussian weights for distances
+def get2dKernel2(d,stdev):
 	k=  cv2.getGaussianKernel(d,stdev)
 	x = np.stack((k,)*3, axis=-1)
 	y = x.reshape((1,d,3))
 	b = np.ones((d,d,3))
 	return x * y * b
+
+#2d array of gaussian weights for distances
+def get2dKernel(d,stdev):
+	array = np.ones((d,d,3))
+	for i in range(d):
+		for j in range(d):
+			for c in range(3):
+				array[i,j,c] = math.sqrt((d//2 -i)**2 + (d//2 -j)**2)
+	return array
+
+	
 #the joint bilateral filter for a pixel
-def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD):
+def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 	#find ranges of mask
 	if d % 2 == 0:
 		low_x = x - (d//2)
@@ -56,20 +68,20 @@ def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD):
  	#added 
 	# get gaussian masks
 	colourMask = gaussian(flash[low_x:high_x,low_y:high_y] - colour,stdevC)
-	distanceMask = get2dKernel(d,stdevD)[add_x:d-cut_x,add_y:d-cut_y]
+	distanceMask = distanceKernel[add_x:d-cut_x,add_y:d-cut_y]
+	#distanceMask = get2dKernel(d,stdevD)[add_x:d-cut_x,add_y:d-cut_y]
 	mask =  distanceMask * colourMask
 	total = np.sum(mask * noFlash[low_x:high_x,low_y:high_y], axis = (0,1))
 	totalDiv = np.sum(mask, axis = (0,1))
 	return total/totalDiv
 
 def jointBilateral(flash,noFlash,d,stdevC,stdevD):
-	#precompute guassian values in dict
 	newImg = np.zeros((flash.shape[0],flash.shape[1],3),dtype = int)
+	distanceKernel = get2dKernel(d,stdevD)
 	for i in range(flash.shape[0]):
 		for j in range(flash.shape[1]):
-			newImg[i,j] = jointBilateralPix(flash,noFlash,d,i,j,stdevC,stdevD)
+			newImg[i,j] = jointBilateralPix(flash,noFlash,d,i,j,stdevC,stdevD,distanceKernel)
 	result = np.asarray(newImg, dtype=np.uint8)	
-
 	return result
 
 def main():
@@ -78,9 +90,9 @@ def main():
 	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR)
 	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR)
 
-	stdev1 =10
-	stdev2 = 10
-	diam = 9
+	stdev1 =3
+	stdev2 = 35
+	diam = 25
 	filteredImg = jointBilateral(flashImg,noFlashImg,diam,stdev1,stdev2)
 	#filteredImg = cv2.bilateralFilter(img,diam,stdev1,stdev2)
 	name = imgname + str(diam) + '_' + str(stdev1) + '_' + str(stdev2) +'.png'
@@ -88,7 +100,6 @@ def main():
 	cv2.imwrite(os.path.join(path,name),filteredImg)
 	if not filteredImg is None:
 		cv2.namedWindow('bilateral filter')
-    # set a loop control flag
 		keep_processing = True
 		while (keep_processing):
 			cv2.imshow('bilateral filter', filteredImg)
@@ -101,18 +112,20 @@ def main():
 cv2.destroyAllWindows();
 
 def test():
-	imgname = 'test2.png' 
-	img = cv2.imread('./' + imgname, cv2.IMREAD_COLOR)
-	diam = 9
-	stdev1 = 5
-	stdev2 = 10
-	filteredImg = (cv2.bilateralFilter(img,diam,stdev1,stdev2))
-	difference = (cv2.bilateralFilter(img,diam,stdev1,stdev2)) - img 
-	name = 'diff_' + imgname + str(diam) + '_' + str(stdev1) + '_' + str(stdev2) +'.png'
+	imgname = 'joint' 
+	#img = cv2.imread('./' + 'test2.png', cv2.IMREAD_COLOR)
+	diam = 25
+	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR)
+	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR)
+	stdev1 = 10
+	stdev2 = 35
+	#for stdev1 in [5,10,15]:
+		#for stdev2 in [15,25,35]:
+	Img = jointBilateral(flashImg,noFlashImg,diam,stdev1,stdev2) 
+	filteredImg = Img
+	name = 'new' + imgname + str(diam) + '_' + str(stdev1) + '_' + str(stdev2) +'.png'
 	path = 'C:/Users/rowan/Documents/uni_year_2/image processing/coursework'
-	cv2.imwrite(os.path.join(path,name),difference)
-# ... and finally close all windows
+	cv2.imwrite(os.path.join(path,name),filteredImg)
 
-main()
-
+test()
 
