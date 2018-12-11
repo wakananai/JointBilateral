@@ -2,7 +2,23 @@ import cv2
 import numpy as np
 import math
 import os
-sqrt2pi = math.sqrt(2 * math.pi )
+
+
+#the gaussian function
+def gaussian(mask,stdev):
+	power = -0.5 * (np.square(mask/stdev))
+	result = np.exp(power)#/divisor
+	return result
+
+
+#2d array of gaussian weights for distances
+def get2dKernel(d,stdev):
+	array = np.ones((d,d,3))
+	for i in range(d):
+		for j in range(d):
+			for c in range(3):
+				array[i,j,c] = math.sqrt((d//2 -i)**2 + (d//2 -j)**2)
+	return array
 
 #makes the dimensions of our mask in range for corners
 def MakeInRange(img,low_x,low_y,high_x,high_y):
@@ -21,33 +37,7 @@ def MakeInRange(img,low_x,low_y,high_x,high_y):
 		cut_y = high_y - (img.shape[1] -1) 
 		high_y = img.shape[1] -1
 
-	return add_x,add_y,cut_x,cut_y,low_x,low_y,high_x,high_y
-	
-#the actual gaussian function
-def gaussian(mask,stdev):
-	power = -0.5 * (np.square(mask/stdev))
-	#divisor = stdev * sqrt2pi
-	result = np.exp(power)#/divisor
-	return result
-
-#2d array of gaussian weights for distances
-def get2dKernel(d,stdev):
-	k=  cv2.getGaussianKernel(d,stdev)
-	x = np.stack((k,)*3, axis=-1)
-	y = x.reshape((1,d,3))
-	b = np.ones((d,d,3))
-	return x * y * b
-
-#2d array of gaussian weights for distances
-def get2dKernel2(d,stdev):
-	array = np.ones((d,d,3))
-	for i in range(d):
-		for j in range(d):
-			for c in range(3):
-				array[i,j,c] = math.sqrt((d//2 -i)**2 + (d//2 -j)**2)
-	return array
-
-	
+	return add_x,add_y,cut_x,cut_y,low_x,low_y,high_x,high_y	
 #the joint bilateral filter for a pixel
 def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 	#find ranges of mask
@@ -101,9 +91,12 @@ def run(diam,stdevC,stdevD):
 	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR)
 #	for stdev1 in [3,5,7]:
 		#for stdev2 in [5,15,25]:
-	Img = jointBilateralCIE(flashImg,noFlashImg,diam,stdevC,stdevD)
-	filteredImg = Img
-	name =   'jointBilat' + str(diam) + '_' + str(stdevC) + '_' + str(stdevD) +'.png'
+	result = jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
+
+	filteredImg = noFlashImg - result
+	#Img = noFlashImg - jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
+	#filteredImg = Img
+	name =   'diffjointBilat' + str(diam) + '_' + str(stdevC) + '_' + str(stdevD) +'.png'
 	path = 'C:/Users/rowan/Documents/uni_year_2/image processing/coursework'
 	cv2.imwrite(os.path.join(path,name),filteredImg)
 	return name
