@@ -26,12 +26,12 @@ def MakeInRange(img,low_x,low_y,high_x,high_y):
 #the actual gaussian function
 def gaussian(mask,stdev):
 	power = -0.5 * (np.square(mask/stdev))
-	divisor = stdev * sqrt2pi
-	result = np.exp(power)/divisor
+	#divisor = stdev * sqrt2pi
+	result = np.exp(power)#/divisor
 	return result
 
 #2d array of gaussian weights for distances
-def get2dKernel2(d,stdev):
+def get2dKernel(d,stdev):
 	k=  cv2.getGaussianKernel(d,stdev)
 	x = np.stack((k,)*3, axis=-1)
 	y = x.reshape((1,d,3))
@@ -39,7 +39,7 @@ def get2dKernel2(d,stdev):
 	return x * y * b
 
 #2d array of gaussian weights for distances
-def get2dKernel(d,stdev):
+def get2dKernel2(d,stdev):
 	array = np.ones((d,d,3))
 	for i in range(d):
 		for j in range(d):
@@ -75,6 +75,7 @@ def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 	totalDiv = np.sum(mask, axis = (0,1))
 	return total/totalDiv
 
+#joint bilateral function RGB colour space
 def jointBilateral(flash,noFlash,d,stdevC,stdevD):
 	newImg = np.zeros((flash.shape[0],flash.shape[1],3),dtype = int)
 	distanceKernel = get2dKernel(d,stdevD)
@@ -84,48 +85,36 @@ def jointBilateral(flash,noFlash,d,stdevC,stdevD):
 	result = np.asarray(newImg, dtype=np.uint8)	
 	return result
 
-def main():
-	imgname = 'joint' 
-	#img = cv2.imread('./' + imgname, cv2.IMREAD_COLOR)
+#joint bileteral function CIELAB colour space
+def jointBilateralCIE(flash,noFlash,d,stdevC,stdevD):
+	flash = cv2.cvtColor(flash,cv2.COLOR_BGR2XYZ)
+	noFlash = cv2.cvtColor(noFlash,cv2.COLOR_BGR2XYZ)
+	newImg = jointBilateral(flash,noFlash,d,stdevC,stdevD)
+	return cv2.cvtColor(newImg,cv2.COLOR_XYZ2BGR)
+	#return newImg
+
+
+#does the joint bilateral filter on the two test images with given parameters
+#writes the image to file
+def run(diam,stdevC,stdevD):
 	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR)
 	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR)
-
-	stdev1 =3
-	stdev2 = 35
-	diam = 25
-	filteredImg = jointBilateral(flashImg,noFlashImg,diam,stdev1,stdev2)
-	#filteredImg = cv2.bilateralFilter(img,diam,stdev1,stdev2)
-	name = imgname + str(diam) + '_' + str(stdev1) + '_' + str(stdev2) +'.png'
-	path = 'C:/Users/rowan/Documents/uni_year_2/image processing/coursework'
-	cv2.imwrite(os.path.join(path,name),filteredImg)
-	if not filteredImg is None:
-		cv2.namedWindow('bilateral filter')
-		keep_processing = True
-		while (keep_processing):
-			cv2.imshow('bilateral filter', filteredImg)
-			key = cv2.waitKey(40) & 0xFF #
-			if (key == ord('x')):
-				keep_processing = False
-	else:
-		print("No image file successfully loaded.")
-
-cv2.destroyAllWindows();
-
-def test():
-	imgname = 'joint' 
-	#img = cv2.imread('./' + 'test2.png', cv2.IMREAD_COLOR)
-	diam = 25
-	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR)
-	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR)
-	stdev1 = 10
-	stdev2 = 35
-	#for stdev1 in [5,10,15]:
-		#for stdev2 in [15,25,35]:
-	Img = jointBilateral(flashImg,noFlashImg,diam,stdev1,stdev2) 
+#	for stdev1 in [3,5,7]:
+		#for stdev2 in [5,15,25]:
+	Img = jointBilateralCIE(flashImg,noFlashImg,diam,stdevC,stdevD)
 	filteredImg = Img
-	name = 'new' + imgname + str(diam) + '_' + str(stdev1) + '_' + str(stdev2) +'.png'
+	name =   'jointBilat' + str(diam) + '_' + str(stdevC) + '_' + str(stdevD) +'.png'
 	path = 'C:/Users/rowan/Documents/uni_year_2/image processing/coursework'
 	cv2.imwrite(os.path.join(path,name),filteredImg)
-
-test()
+	return name
+# for testing with input from user
+def main():
+	diam = int(input('Enter diameter: '))
+	stdevC = int(input('Enter sigma colour: '))
+	stdevD = int(input('Enter sigma space: '))
+	try:
+		fileName = run(diam,stdevC,stdevD)
+	except:
+		print('Error, invalid input')
+main()
 
