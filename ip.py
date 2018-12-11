@@ -19,25 +19,6 @@ def get2dKernel(d,stdev):
 	b = np.ones((d,d,3))
 	return x * y * b
 
-#returns correct dimensions of our mask so it handles edges/corners correctly
-def MakeInRange(img,low_x,low_y,high_x,high_y):
-	add_x=add_y=cut_x=cut_y = 0
-	if low_x < 0:
-		add_x = abs(low_x)
-		low_x = 0
-	if low_y < 0:
-		add_y = abs(low_y)
-		low_y = 0
-
-	if high_x > (img.shape[0] -1):
-		cut_x = high_x - (img.shape[0] -1) 
-		high_x = img.shape[0] -1
-	if high_y > img.shape[1] - 1:
-		cut_y = high_y - (img.shape[1] -1) 
-		high_y = img.shape[1] -1
-
-	return add_x,add_y,cut_x,cut_y,low_x,low_y,high_x,high_y
-	
 #the joint bilateral filter for one pixel
 def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 	#find ranges of mask
@@ -50,13 +31,24 @@ def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 	high_x = x + (d//2)
 	high_y = y + (d//2)
 	#handle edge cases
-	add_x,add_y,cut_x,cut_y,low_x,low_y,high_x,high_y  = MakeInRange(flash,low_x,low_y,high_x,high_y)
+	add_x=add_y=cut_x=cut_y = 0
+	if low_x < 0:
+		add_x = abs(low_x)
+		low_x = 0
+	if low_y < 0:
+		add_y = abs(low_y)
+		low_y = 0
+	if high_x > (flash.shape[0] -1):
+		cut_x = high_x - (flash.shape[0] -1) 
+		high_x = flash.shape[0] -1
+	if high_y > flash.shape[1] - 1:
+		cut_y = high_y - (flash.shape[1] -1) 
+		high_y = flash.shape[1] -1
 	#find the sum of the gaussian functions
 	total= np.zeros(3) 
 	totalDivisor= np.zeros(3)
 	colorGauss = np.zeros(3)
 	colour = flash[x,y]
- 	#added 
 	# get gaussian masks
 	colourMask = gaussian(flash[low_x:high_x,low_y:high_y] - colour,stdevC)
 	distanceMask = distanceKernel[add_x:d-cut_x,add_y:d-cut_y]
