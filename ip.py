@@ -2,25 +2,24 @@ import cv2
 import numpy as np
 import math
 import os
+sqrt2pi = math.sqrt(2 * math.pi )
 
-
-#the gaussian function
+#the actual gaussian function
 def gaussian(mask,stdev):
 	power = -0.5 * (np.square(mask/stdev))
+	#divisor = stdev * sqrt2pi
 	result = np.exp(power)#/divisor
 	return result
 
-
 #2d array of gaussian weights for distances
 def get2dKernel(d,stdev):
-	array = np.ones((d,d,3))
-	for i in range(d):
-		for j in range(d):
-			for c in range(3):
-				array[i,j,c] = math.sqrt((d//2 -i)**2 + (d//2 -j)**2)
-	return array
+	k=  cv2.getGaussianKernel(d,stdev)
+	x = np.stack((k,)*3, axis=-1)
+	y = x.reshape((1,d,3))
+	b = np.ones((d,d,3))
+	return x * y * b
 
-#makes the dimensions of our mask in range for corners
+#returns correct dimensions of our mask so it handles edges/corners correctly
 def MakeInRange(img,low_x,low_y,high_x,high_y):
 	add_x=add_y=cut_x=cut_y = 0
 	if low_x < 0:
@@ -37,8 +36,9 @@ def MakeInRange(img,low_x,low_y,high_x,high_y):
 		cut_y = high_y - (img.shape[1] -1) 
 		high_y = img.shape[1] -1
 
-	return add_x,add_y,cut_x,cut_y,low_x,low_y,high_x,high_y	
-#the joint bilateral filter for a pixel
+	return add_x,add_y,cut_x,cut_y,low_x,low_y,high_x,high_y
+	
+#the joint bilateral filter for one pixel
 def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 	#find ranges of mask
 	if d % 2 == 0:
@@ -49,6 +49,7 @@ def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 		low_y = y - (d//2 +1)
 	high_x = x + (d//2)
 	high_y = y + (d//2)
+	#handle edge cases
 	add_x,add_y,cut_x,cut_y,low_x,low_y,high_x,high_y  = MakeInRange(flash,low_x,low_y,high_x,high_y)
 	#find the sum of the gaussian functions
 	total= np.zeros(3) 
@@ -59,7 +60,6 @@ def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 	# get gaussian masks
 	colourMask = gaussian(flash[low_x:high_x,low_y:high_y] - colour,stdevC)
 	distanceMask = distanceKernel[add_x:d-cut_x,add_y:d-cut_y]
-	#distanceMask = get2dKernel(d,stdevD)[add_x:d-cut_x,add_y:d-cut_y]
 	mask =  distanceMask * colourMask
 	total = np.sum(mask * noFlash[low_x:high_x,low_y:high_y], axis = (0,1))
 	totalDiv = np.sum(mask, axis = (0,1))
@@ -89,11 +89,7 @@ def jointBilateralCIE(flash,noFlash,d,stdevC,stdevD):
 def run(diam,stdevC,stdevD):
 	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR)
 	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR)
-#	for stdev1 in [3,5,7]:
-		#for stdev2 in [5,15,25]:
-	result = jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
-
-	filteredImg = noFlashImg - result
+	filteredImg = jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
 	#Img = noFlashImg - jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
 	#filteredImg = Img
 	name =   'diffjointBilat' + str(diam) + '_' + str(stdevC) + '_' + str(stdevD) +'.png'
