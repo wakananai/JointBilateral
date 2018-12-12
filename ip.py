@@ -17,18 +17,19 @@ def gaussiank(mask,stdev):
 	return result
 
 #2d array of gaussian weights for distances
-#should do the same thing as cv2.getGaussianKernel
 def get2dKernel(d,stdev):
 	arr = [[i] for i in range(d//2,-1,-1)]
-	a = np.array(arr + arr[:-1][::-1])
+	if d % 2 == 1:
+		a = np.array(arr + arr[:-1][::-1])
+	else:
+		a = np.array(arr[:-1] + arr[:-1][::-1])
 	k = gaussiank(a,stdev)
-	i = np.sum(k) # we need to make sure our gaussian kernel sums up to 1
-	scalar = 1/i
-	k = scalar * k 
+	k = k/np.sum(k) # we need to make sure our gaussian kernel sums up to 1
 	x = np.stack((k,)*3, axis=-1)
 	y = x.reshape((1,d,3))
 	b = np.ones((d,d,3))
 	return x * y * b
+
 
 #the joint bilateral filter for one pixel
 def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
@@ -108,3 +109,5 @@ def main():
 		print('Error: ',str(e))
 main()
 
+#print(np.sum(get2dKernel(9,10)))
+#input('')
