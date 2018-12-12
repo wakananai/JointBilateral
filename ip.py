@@ -2,18 +2,29 @@ import cv2
 import numpy as np
 import math
 import os
-sqrt2pi = math.sqrt(2 * math.pi )
 
-#the actual gaussian function
+#gaussian function where we dont need divisor
 def gaussian(mask,stdev):
 	power = -0.5 * (np.square(mask/stdev))
-	#divisor = stdev * sqrt2pi
-	result = np.exp(power)#/divisor
+	result = np.exp(power)
+	return result
+
+#gaussian function where we need divisor
+def gaussiank(mask,stdev):
+	power = -0.5 * (np.square(mask/stdev))
+	divisor = stdev * math.sqrt(2 * math.pi )
+	result = np.exp(power)/divisor
 	return result
 
 #2d array of gaussian weights for distances
+#should do the same thing as cv2.getGaussianKernel
 def get2dKernel(d,stdev):
-	k=  cv2.getGaussianKernel(d,stdev)
+	arr = [[i] for i in range(d//2,-1,-1)]
+	a = np.array(arr + arr[:-1][::-1])
+	k = gaussiank(a,stdev)
+	i = np.sum(k) # we need to make sure our gaussian kernel sums up to 1
+	scalar = 1/i
+	k = scalar * k 
 	x = np.stack((k,)*3, axis=-1)
 	y = x.reshape((1,d,3))
 	b = np.ones((d,d,3))
@@ -73,8 +84,6 @@ def jointBilateralCIE(flash,noFlash,d,stdevC,stdevD):
 	noFlash = cv2.cvtColor(noFlash,cv2.COLOR_BGR2XYZ)
 	newImg = jointBilateral(flash,noFlash,d,stdevC,stdevD)
 	return cv2.cvtColor(newImg,cv2.COLOR_XYZ2BGR)
-	#return newImg
-
 
 #does the joint bilateral filter on the two test images with given parameters
 #writes the image to file
@@ -84,7 +93,7 @@ def run(diam,stdevC,stdevD):
 	filteredImg = jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
 	#Img = noFlashImg - jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
 	#filteredImg = Img
-	name =   'diffjointBilat' + str(diam) + '_' + str(stdevC) + '_' + str(stdevD) +'.png'
+	name =   'ajointBilat' + str(diam) + '_' + str(stdevC) + '_' + str(stdevD) +'.png'
 	path = 'C:/Users/rowan/Documents/uni_year_2/image processing/coursework'
 	cv2.imwrite(os.path.join(path,name),filteredImg)
 	return name
@@ -95,7 +104,7 @@ def main():
 	stdevD = int(input('Enter sigma space: '))
 	try:
 		fileName = run(diam,stdevC,stdevD)
-	except:
-		print('Error, invalid input')
+	except Exception as e:
+		print('Error: ',str(e))
 main()
 
