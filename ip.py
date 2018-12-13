@@ -73,13 +73,12 @@ def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 
 #joint bilateral function RGB colour space
 def jointBilateral(flash,noFlash,d,stdevC,stdevD):
-	newImg = np.zeros((flash.shape[0],flash.shape[1],3),dtype = int)
+	newImg = np.zeros((flash.shape[0],flash.shape[1],3),dtype = np.uint8)
 	distanceKernel = get2dKernel(d,stdevD)
 	for i in range(flash.shape[0]):
 		for j in range(flash.shape[1]):
 			newImg[i,j] = jointBilateralPix(flash,noFlash,d,i,j,stdevC,stdevD,distanceKernel)
-	result = np.asarray(newImg, dtype=np.uint8)	
-	return result
+	return newImg
 
 #joint bileteral function CIELAB colour space
 def jointBilateralCIE(flash,noFlash,d,stdevC,stdevD):
