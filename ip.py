@@ -73,6 +73,8 @@ def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 
 #joint bilateral function RGB colour space
 def jointBilateral(flash,noFlash,d,stdevC,stdevD):
+	flash = flash.astype(float)
+	noFlash = noFlash.astype(float)
 	newImg = np.zeros((flash.shape[0],flash.shape[1],3),dtype = np.uint8)
 	distanceKernel = get2dKernel(d,stdevD)
 	for i in range(flash.shape[0]):
@@ -90,12 +92,12 @@ def jointBilateralCIE(flash,noFlash,d,stdevC,stdevD):
 #does the joint bilateral filter on the two test images with given parameters
 #writes the image to file
 def run(diam,stdevC,stdevD):
-	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR).astype(float)
-	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR).astype(float)
+	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR)#.astype(float)
+	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR)#.astype(float)
 	filteredImg = jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
 	#Img = noFlashImg - jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
 	#filteredImg = Img
-	name =   'ajointBilat' + str(diam) + '_' + str(stdevC) + '_' + str(stdevD) +'.png'
+	name =   'jointBilat' + str(diam) + '_' + str(stdevC) + '_' + str(stdevD) +'.png'
 	path = 'C:/Users/rowan/Documents/uni_year_2/image processing/coursework'
 	cv2.imwrite(os.path.join(path,name),filteredImg)
 	return name
