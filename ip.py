@@ -3,14 +3,8 @@ import numpy as np
 import math
 import os
 
-#gaussian function where we dont need divisor
-def gaussian(mask,stdev):
-	power = -0.5 * (np.square(mask/stdev))
-	result = np.exp(power)
-	return result
-
 #gaussian function where we need divisor
-def gaussiank(mask,stdev):
+def gaussian(mask,stdev):
 	power = -0.5 * (np.square(mask/stdev))
 	divisor = stdev * math.sqrt(2 * math.pi )
 	result = np.exp(power)/divisor
@@ -23,8 +17,8 @@ def get2dKernel(d,stdev):
 		a = np.array(arr + arr[:-1][::-1])
 	else:
 		a = np.array(arr[:-1] + arr[:-1][::-1])
-	k = gaussiank(a,stdev)
-	k = k/np.sum(k) # we need to make sure our gaussian kernel sums up to 1
+	k = gaussian(a,stdev)
+	k = k/np.sum(k)
 	x = np.stack((k,)*3, axis=-1)
 	y = x.reshape((1,d,3))
 	b = np.ones((d,d,3))
@@ -66,8 +60,7 @@ def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 	mask =  distanceMask * colourMask
 	total = np.sum(mask * noFlash[low_x:high_x,low_y:high_y], axis = (0,1))
 	totalDiv = np.sum(mask, axis = (0,1))
-	#print(total)
-	#print(totalDiv)
+
 	return total/totalDiv
 
 #joint bilateral function RGB colour space
@@ -93,9 +86,7 @@ def jointBilateralCIE(flash,noFlash,d,stdevC,stdevD):
 def run(diam,stdevC,stdevD):
 	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR)#.astype(float)
 	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR)#.astype(float)
-	filteredImg = jointBilateralCIE(flashImg,noFlashImg,diam,stdevC,stdevD)
-	#Img = noFlashImg - jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
-	#filteredImg = Img
+	filteredImg = jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
 	name =   'jointBilat' + str(diam) + '_' + str(stdevC) + '_' + str(stdevD) +'.png'
 	path = 'C:/Users/rowan/Documents/uni_year_2/image processing/coursework'
 	cv2.imwrite(os.path.join(path,name),filteredImg)
