@@ -67,6 +67,8 @@ def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 	mask =  distanceMask * colourMask
 	total = np.sum(mask * noFlash[low_x:high_x,low_y:high_y], axis = (0,1))
 	totalDiv = np.sum(mask, axis = (0,1))
+	#print(total)
+	#print(totalDiv)
 	return total/totalDiv
 
 #joint bilateral function RGB colour space
@@ -89,8 +91,8 @@ def jointBilateralCIE(flash,noFlash,d,stdevC,stdevD):
 #does the joint bilateral filter on the two test images with given parameters
 #writes the image to file
 def run(diam,stdevC,stdevD):
-	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR)
-	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR)
+	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR).astype(float)
+	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR).astype(float)
 	filteredImg = jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
 	#Img = noFlashImg - jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
 	#filteredImg = Img
@@ -101,13 +103,11 @@ def run(diam,stdevC,stdevD):
 # for testing with input from user
 def main():
 	diam = int(input('Enter diameter: '))
-	stdevC = int(input('Enter sigma colour: '))
-	stdevD = int(input('Enter sigma space: '))
+	stdevC = float(input('Enter sigma colour: '))
+	stdevD = float(input('Enter sigma space: '))
 	try:
 		fileName = run(diam,stdevC,stdevD)
 	except Exception as e:
 		print('Error: ',str(e))
 main()
 
-#print(np.sum(get2dKernel(9,10)))
-#input('')
