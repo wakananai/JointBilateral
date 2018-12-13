@@ -16,7 +16,7 @@ def gaussiank(mask,stdev):
 	result = np.exp(power)/divisor
 	return result
 
-#2d array of gaussian weights for distances
+#2d array of gaussian weights for distances which we can reuse for efficiency
 def get2dKernel(d,stdev):
 	arr = [[i] for i in range(d//2,-1,-1)]
 	if d % 2 == 1:
@@ -30,7 +30,6 @@ def get2dKernel(d,stdev):
 	b = np.ones((d,d,3))
 	return x * y * b
 
-
 #the joint bilateral filter for one pixel
 def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 	#find ranges of mask
@@ -42,7 +41,7 @@ def jointBilateralPix(flash,noFlash,d,x,y,stdevC,stdevD,distanceKernel):
 		low_y = y - (d//2 +1)
 	high_x = x + (d//2)
 	high_y = y + (d//2)
-	#handle edge cases
+	#handle edge cases where the mask goes out of range
 	add_x=add_y=cut_x=cut_y = 0
 	if low_x < 0:
 		add_x = abs(low_x)
@@ -94,7 +93,7 @@ def jointBilateralCIE(flash,noFlash,d,stdevC,stdevD):
 def run(diam,stdevC,stdevD):
 	noFlashImg = cv2.imread('./test3a.jpg', cv2.IMREAD_COLOR)#.astype(float)
 	flashImg = cv2.imread('./test3b.jpg', cv2.IMREAD_COLOR)#.astype(float)
-	filteredImg = jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
+	filteredImg = jointBilateralCIE(flashImg,noFlashImg,diam,stdevC,stdevD)
 	#Img = noFlashImg - jointBilateral(flashImg,noFlashImg,diam,stdevC,stdevD)
 	#filteredImg = Img
 	name =   'jointBilat' + str(diam) + '_' + str(stdevC) + '_' + str(stdevD) +'.png'
@@ -111,4 +110,3 @@ def main():
 	except Exception as e:
 		print('Error: ',str(e))
 main()
-
